@@ -1,0 +1,116 @@
+---
+- name: Kubernetes Kubesphere Cluster | Stop if requirements are not satisfied
+  assert:
+    that:
+      - ks_es_external_username is defined
+      - ks_es_external_password is defined
+      - ks_es_external_url is defined
+      - ks_es_external_port is defined
+    msg: "Kubesphere required variables must be defined before apply playbook"
+
+- name: Kubernetes Kubesphere Cluster | Ensure KubeSphere namespaces created
+  command: >
+    {{ bin_dir }}/kubectl create namespace {{ item }}
+  register: ns_state
+  failed_when: "ns_state.stderr and 'already exists' not in ns_state.stderr"
+  with_items:
+    - kubesphere-system
+    - kubesphere-monitoring-system
+  when:
+    - inventory_hostname == groups['kube-master'][0]
+
+- name: Kubernetes Kubesphere Cluster | Ensure etcd credentials secret created
+  shell: >
+    {{ bin_dir }}/kubectl -n kubesphere-monitoring-system create secret generic kube-etcd-client-certs  \
+      --from-file=etcd-client-ca.crt="{{ etcd_cert_dir }}/ca.pem"  \
+      --from-file=etcd-client.crt={{ etcd_cert_dir }}/node-{{ inventory_hostname }}.pem  \
+      --from-file=etcd-client.key={{ etcd_cert_dir }}/node-{{ inventory_hostname }}-key.pem
+  register: ks_etcd_secret
+  failed_when: "ks_etcd_secret.stderr and 'AlreadyExists' not in ks_etcd_secret.stderr"
+  until: ks_etcd_secret is succeeded
+  retries: 5
+  delay: 10
+  when:
+    - inventory_hostname == groups['kube-master'][0]
+
+- name: Kubernetes Kubesphere Cluster | Create kubesphere config directory if not exist
+  file:
+    path: "{{ kube_config_dir }}/kubesphere"
+    state: directory
+
+- name: Kubernetes Kubesphere Cluster | Copy Kubesphere Installer manifest
+  template:
+    src: "kubesphere-installer.yaml.j2"
+    dest: "{{ kube_config_dir }}/kubesphere/kubesphere-installer.yaml"
+  register: ks_installer_manifest
+  when:
+    - inventory_hostname == groups['kube-master'][0]
+
+- name: Kubernetes Kubesphere Cluster | Apply Kubesphere Installer manifest
+  kube:
+    kubectl: "{{ bin_dir }}/kubectl"
+    filename: "{{ kube_config_dir }}/kubesphere/kubesphere-installer.yaml"
+    state: "latest"
+  when:
+    - inventory_hostname == groups['kube-master'][0]
+    - ks_installer_manifest.changed
+
+- name: Kubernetes Kubesphere Cluster | Wait for Kubesphere Installer CRD registered
+  command: >
+    {{ bin_dir }}/kubectl wait --for condition=established --timeout=60s crd/clusterconfigurations.installer.kubesphere.io
+  when:
+    - inventory_hostname == groups['kube-master'][0]
+
+- name: Kubernetes Kubesphere Cluster | Copy Kubesphere Cluster configuration manifest
+  template:
+    src: "cluster-configuration.yaml.j2"
+    dest: "{{ kube_config_dir }}/kubesphere/cluster-configuration.yaml"
+  register: ks_cluster_config_manifest
+  when:
+    - inventory_hostname == groups['kube-master'][0]
+
+- name: Kubernetes Kubesphere Cluster | Apply Kubesphere Cluster configuration manifest
+  kube:
+    kubectl: "{{ bin_dir }}/kubectl"
+    filename: "{{ kube_config_dir }}/kubesphere/cluster-configuration.yaml"
+    state: "latest"
+  when:
+    - inventory_hostname == groups['kube-master'][0]
+    - ks_cluster_config_manifest.changed
+
+- name: Kubernetes Kubesphere Cluster | Wait for Kubesphere Installer started
+  command: "{{ bin_dir }}/kubectl -n kubesphere-system get cc ks-installer -o jsonpath='{.status.installer.status}'"
+  register: installer_status
+  retries: 30
+  delay: 20
+  until: installer_status.stdout.find("started")!=-1
+  when:
+    - inventory_hostname == groups['kube-master'][0]
+    - ks_cluster_config_manifest.changed or ks_installer_manifest.changed
+
+- name: Kubernetes Kubesphere Cluster | Pause to wait kubesphere finish installing process
+  pause:
+    minutes: "{{ ks_install_duration | default(10) }}"
+  when:
+    - inventory_hostname == groups['kube-master'][0]
+    - ks_cluster_config_manifest.changed or ks_installer_manifest.changed
+
+- name: Kubernetes Kubesphere Cluster | Wait for Kubesphere Installer finished
+  command: "{{ bin_dir }}/kubectl -n kubesphere-system get cc ks-installer -o jsonpath='{.status.installer.status}'"
+  register: installer_status
+  retries: 10
+  delay: 10
+  until: installer_status.stdout.find("success")!=-1
+  when:
+    - inventory_hostname == groups['kube-master'][0]
+    - ks_cluster_config_manifest.changed or ks_installer_manifest.changed
+
+# Work around for change Istio Ingress Gateway from Load Balancer to NodePort
+- name: Kubernetes Kubesphere Cluster | Fix istio ingress gateway
+  command: >
+    {{ bin_dir }}/kubectl -n istio-system patch svc istio-ingressgateway -p '{"spec": {"type": "NodePort"}}'
+  when:
+    - inventory_hostname == groups['kube-master'][0]
+
+- import_tasks: email-notification.yml
+  when: enable_email_notification

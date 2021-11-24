@@ -1,0 +1,7 @@
+---
+dependencies:
+  - role: persistent_volumes
+    when:
+      - inventory_hostname == groups['kube-master'][0]
+    tags:
+      - persistent_volumes

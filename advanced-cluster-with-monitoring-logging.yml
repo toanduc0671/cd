@@ -1,0 +1,8 @@
+---
+- name: Include kubespray tasks
+  include: ./kubespray/cluster.yml
+
+- hosts: kube-master[0]
+  gather_facts: no
+  roles:
+    - { role: k8s-monitoring }

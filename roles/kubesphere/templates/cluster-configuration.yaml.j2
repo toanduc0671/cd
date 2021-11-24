@@ -1,0 +1,123 @@
+apiVersion: installer.kubesphere.io/v1alpha1
+kind: ClusterConfiguration
+metadata:
+  name: ks-installer
+  namespace: kubesphere-system
+  labels:
+    version: v3.1.0
+spec:
+  alerting:
+    enabled: true
+  auditing:
+    enabled: true
+  authentication:
+    jwtSecret: ''
+  common:
+    es:
+      # bypass value for satisfy kubesphere installer
+      elasticsearchMasterReplicas: 1   # The total number of master nodes. Even numbers are not allowed.
+      elasticsearchDataReplicas: 1     # The total number of data nodes.
+      elasticsearchMasterVolumeSize: 4Gi   # The volume size of Elasticsearch master nodes.
+      elasticsearchDataVolumeSize: 20Gi    # The volume size of Elasticsearch data nodes.
+      # Real configuration
+      elkPrefix: {{ cluster_name }}-external
+      externalElasticsearchUrl: {{ ks_es_external_url }}
+      externalElasticsearchPort: {{ ks_es_external_port }}
+      logMaxAge: {{ ks_es_external_log_max_age | default(90) }}
+      basicAuth:
+        enabled: {{ ks_es_external_auth_enabled | default(false) | lower }}
+        username: {{ ks_es_external_username | default('') }}
+        password: {{ ks_es_external_password | default('') }}
+    minioVolumeSize: {{ ks_minio_volume_size | default('20Gi') }}
+    monitoring:
+      endpoint: 'http://prometheus-operated.kubesphere-monitoring-system.svc:9090'
+    openldap:
+      enabled: false
+    openldapVolumeSize: {{ ks_openldap_volume_size | default('2Gi') }}
+    redis:
+      enabled: false
+    redisVolumSize: {{ ks_redis_volume_size | default('2Gi') }}
+  console:
+    enableMultiLogin: true
+    port: 30880
+  devops:
+    enabled: true
+    jenkinsJavaOpts_MaxRAM: 2g
+    jenkinsJavaOpts_Xms: 512m
+    jenkinsJavaOpts_Xmx: 512m
+    jenkinsMemoryLim: 2Gi
+    jenkinsMemoryReq: 1500Mi
+    jenkinsVolumeSize: {{ ks_jenkins_volume_size | default('20Gi') }}
+  etcd:
+    endpointIps: {{ etcd_access_ips }}
+    monitoring: true
+    port: 2379
+    tlsEnable: true
+  events:
+    enabled: false
+    ruler:
+      enabled: true
+      replicas: 2
+  kubeedge:
+    cloudCore:
+      cloudHub:
+        advertiseAddress:
+          - ''
+        nodeLimit: '100'
+      cloudhubHttpsPort: '10002'
+      cloudhubPort: '10000'
+      cloudhubQuicPort: '10001'
+      cloudstreamPort: '10003'
+      nodeSelector:
+        node-role.kubernetes.io/worker: ''
+      service:
+        cloudhubHttpsNodePort: '30002'
+        cloudhubNodePort: '30000'
+        cloudhubQuicNodePort: '30001'
+        cloudstreamNodePort: '30003'
+        tunnelNodePort: '30004'
+      tolerations: []
+      tunnelPort: '10004'
+    edgeWatcher:
+      edgeWatcherAgent:
+        nodeSelector:
+          node-role.kubernetes.io/worker: ''
+        tolerations: []
+      nodeSelector:
+        node-role.kubernetes.io/worker: ''
+      tolerations: []
+    enabled: false
+  local_registry: {{ ks_image_repo }}
+  logging:
+    enabled: true
+    logsidecar:
+      enabled: true
+      replicas: 2
+  metrics_server:
+    enabled: true
+  monitoring:
+    prometheus:
+      requests:
+        cpu: 500m
+        memory: 2Gi
+      limits:
+        memory: {{ ks_prometheus_mem_limit | default('4Gi') }}
+        cpu: {{ ks_prometheus_cpu_limit | default('2') }}
+    prometheusVolumeSize: {{ ks_prometheus_volume_size | default('20Gi') }}
+    storageClass: {{ ks_storage_class }}
+  multicluster:
+    clusterRole: none
+  network:
+    ippool:
+      type: none
+    networkpolicy:
+      enabled: true
+    topology:
+      type: none
+  openpitrix:
+    store:
+      enabled: true
+  persistence:
+    storageClass: {{ ks_storage_class }}
+  servicemesh:
+    enabled: true

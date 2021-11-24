@@ -1,0 +1,7 @@
+paas_image_repo: "docker.io"
+paas_storage_class: cinder-csi-default-sc
+
+etcd_access_ips: |-
+  {% for item in etcd_hosts -%}
+    {{ hostvars[item]['etcd_access_address'] | default(hostvars[item]['ip'] | default(fallback_ips[item])) }}{% if not loop.last %},{% endif %}
+  {%- endfor %}

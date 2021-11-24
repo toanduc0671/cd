@@ -1,0 +1,30 @@
+- name: Replace Load Balancer API IP
+  replace:
+    path: "/root/.kube/config"
+    regexp: 'lb-apiserver.kubernetes.local'
+    replace: "{{ loadbalancer_apiserver.address }}"
+
+- name: Ensure Helm installed
+  get_url:
+    url: "{{ helm_download_url }}"
+    dest: /usr/local/sbin/helm
+    mode: 0755
+
+- name: Ensure Helm Chart Repository
+  shell: "/usr/local/sbin/helm repo add cloud {{ helm_repo }}"
+  ignore_errors: yes
+
+- name: Copy Helm chart values
+  copy:
+    src: "{{ playbook_dir }}/kube-prometheus-stack-values.yaml"
+    dest: /opt/kube-prometheus-stack-values.yaml
+    mode: 0644
+
+- name: Create install chart script
+  template:
+    src: "install-kube-prom-stack-chart.sh.j2"
+    dest: "/opt/install-kube-prom-stack-chart.sh"
+    mode: 0755
+
+- name: Install kube-prometheus stack
+  shell: bash /opt/install-kube-prom-stack-chart.sh

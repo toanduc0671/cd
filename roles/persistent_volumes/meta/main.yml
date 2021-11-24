@@ -1,0 +1,11 @@
+---
+# TODO Add another storage solutions in here
+dependencies:
+  - role: persistent_volumes/cinder-csi
+    when:
+      - inventory_hostname == groups['kube-master'][0]
+      - primary_storage_backend == 'cinder'
+      - cinder_csi_enabled
+    tags:
+      - persistent_volumes_cinder_csi
+      - cinder-csi-driver

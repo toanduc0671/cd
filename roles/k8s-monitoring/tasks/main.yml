@@ -1,0 +1,4 @@
+- import_tasks: external-alert-manager.yml
+  when: use_external_alert_manager
+
+- import_tasks: kube-prom-stack.yml

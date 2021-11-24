@@ -1,0 +1,35 @@
+---
+- name: Kubernetes Kubesphere Cluster | Stop if requirements are not satisfied
+  assert:
+    that:
+      - ks_notification_email_account is defined
+      - ks_notification_email_password is defined
+      - ks_notification_email_ip is defined
+      - ks_notification_email_port is defined
+      - ks_notification_cluster_admin_emails is defined
+    msg: "Kubesphere required variables must be defined before apply playbook"
+
+- name:  Kubernetes Kubesphere Cluster | Create email notification config directory if not exist
+  file:
+    path: "{{ kube_config_dir }}/email-notification"
+    state: directory
+  when:
+    - inventory_hostname == groups['kube-master'][0]
+
+- name: Kubernetes Kubesphere Cluster | Copy email notification config manifests
+  template:
+    src: "email-notification/{{ item.file }}.j2"
+    dest: "{{ kube_config_dir }}/email-notification/{{ item.file }}"
+  with_items:
+    - { name: default-email-config.yaml, file: default-email-config.yaml }
+    - { name: default-email-receiver.yaml, file: default-email-receiver.yaml }
+  when:
+    - inventory_hostname == groups['kube-master'][0]
+
+- name: Kubernetes Kubesphere Cluster | Apply email notification manifest
+  kube:
+    kubectl: "{{ bin_dir }}/kubectl"
+    filename: "{{ kube_config_dir }}/email-notification"
+    state: "latest"
+  when:
+    - inventory_hostname == groups['kube-master'][0]

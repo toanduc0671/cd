@@ -1,0 +1,5 @@
+- name: PaaS | Configuring defaults
+  debug:
+    msg: "Check roles/paas-defaults/main.yml"
+  tags:
+    - always

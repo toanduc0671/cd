@@ -1,0 +1,17 @@
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  labels:
+    k8s-app: etcd-node-exporter
+  name: etcd-node-exporter
+  namespace: kube-system
+subsets:
+- addresses:
+{% for endpoint in etcd_access_ips.split(',') %}
+  - ip: {{ endpoint }}
+{% endfor %}
+  ports:
+  - name: metrics
+    port: {{ node_exporter_port }}
+    protocol: TCP

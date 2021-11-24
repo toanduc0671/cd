@@ -1,0 +1,46 @@
+#Setup storage class attribute
+storage_classes:
+  - name: cinder-csi-default-sc
+    is_default: true
+    allowVolumeExpansion: true
+    parameters:
+      type: ""
+      allowVolumeExpansion: true
+paas_storage_class: cinder-csi-default-sc
+paas_image_repo: "10.60.129.132:8890"
+
+ks_installer_image: "kubesphere/ks-installer:v3.1.0-internal-4"
+ks_image_repo: "10.60.129.132:8890"
+# External ElasticSearch IP Address. Must set before run playbook
+# ks_es_external_url: 192.168.1.100
+# External ElasticSearch Port. Must set before run playbook
+# ks_es_external_port: 9200
+
+# External ElasticSearch Log Retention
+# ks_es_external_log_max_age: 7
+# Enable External ElasticSearch Authentication
+# ks_es_external_auth_enabled: false
+
+# ks_minio_volume_size: 20Gi
+# ks_openldap_volume_size: 2Gi
+# ks_redis_volume_size: 2Gi
+# ks_jenkins_volume_size: 20Gi
+# ks_prometheus_mem_limit: 4Gi
+# ks_prometheus_cpu_limit: 2
+# ks_prometheus_volume_size: 20Gi
+
+# kubesphere install duration. Default 10 minutes
+# ks_install_duration: 10
+
+# Install Grafana Dashboard
+enable_grafana: false
+
+# Enable email notification or not
+enable_email_notification: false
+
+# Set these variables when enable email notification
+#ks_notification_email_ip: email.server.com
+#ks_notification_email_port: 465
+#ks_notification_cluster_admin_emails:
+#  - admin1@emai.com
+#  - admin2@emai.com

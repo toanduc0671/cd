@@ -1,0 +1,18 @@
+/usr/local/sbin/helm --kubeconfig /root/.kube/config install -f /opt/kube-prometheus-stack-values.yaml \
+--set kubeEtcd.serviceMonitor.caFile=/etc/ssl/etcd/ssl/ca.pem \
+--set kubeEtcd.serviceMonitor.certFile=/etc/ssl/etcd/ssl/node-{{ inventory_hostname }}.pem  \
+--set kubeEtcd.serviceMonitor.keyFile=/etc/ssl/etcd/ssl/node-{{ inventory_hostname }}-key.pem \
+{% if use_external_alert_manager %}
+--set alertmanager.enabled=false \
+{% for alert_manager in alert_managers %}
+--set prometheus.prometheusSpec.alertingEndpoints[{{ loop.index - 1 }}].name=external-alert-manager-{{ alert_manager.split(':')[0].split('.') | join('-') }}-{{ alert_manager.split(':')[1]}}-svc,\
+prometheus.prometheusSpec.alertingEndpoints[{{ loop.index - 1 }}].namespace=default,\
+prometheus.prometheusSpec.alertingEndpoints[{{ loop.index - 1 }}].port=http,\
+prometheus.prometheusSpec.alertingEndpoints[{{ loop.index - 1 }}].scheme=http,\
+prometheus.prometheusSpec.alertingEndpoints[{{ loop.index - 1 }}].pathPrefix=/,\
+prometheus.prometheusSpec.alertingEndpoints[{{ loop.index - 1 }}].apiVersion=v2 \
+{% endfor %}
+{% else %}
+--set alertmanager.enabled=true \
+{% endif %}
+--generate-name cloud/kube-prometheus-stack

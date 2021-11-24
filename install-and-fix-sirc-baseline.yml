@@ -1,0 +1,6 @@
+- hosts: all
+  gather_facts: False
+  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
+  become: True
+  roles:
+    - { role: sirc_baseline }

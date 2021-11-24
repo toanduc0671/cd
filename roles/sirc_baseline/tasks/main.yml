@@ -1,0 +1,172 @@
+- name: Copy sirc installer to target servers
+  copy:
+    src: "files/se-install.sh"
+    dest: /root/
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Copy correct yum repo to target servers
+  copy:
+    src: "files/local.repo"
+    dest: /etc/yum.repos.d/
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Ensure unzip is installed
+  shell: yum clean all; yum -y install unzip
+
+- name: Install sirc to target servers
+  shell: cd /root/ ; bash se-install.sh -A 10.30.160.44 -i centos_7_{{ inventory_hostname }} -f
+
+- name: Check if iptables-save-data file is exists
+  stat:
+    path: /usr/sbin/iptables-save-data
+    get_attributes: no
+    get_checksum: no
+    get_mime: no
+  register: iptables_save_data_f
+
+- name: Check if iptables-save file is exists
+  stat:
+    path: /usr/sbin/iptables-save
+    get_attributes: no
+    get_checksum: no
+    get_mime: no
+  register: iptables_save_f
+
+- name: Backup iptables-save tool
+  shell: mv /usr/sbin/iptables-save /usr/sbin/iptables-save-data
+  when:
+    - iptables_save_f.stat.exists
+    - not iptables_save_data_f.stat.exists
+
+- name: Replace iptables-save tool
+  copy:
+    src: "files/iptables-save"
+    dest: /usr/sbin/iptables-save
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Check exist iptable rules
+  shell: /usr/sbin/iptables -S
+  register: iptables_rules
+
+- name: Add iptables drop rule if not exist
+  shell: |
+    /usr/sbin/iptables -A INPUT -p tcp -m tcp --dport 60 -j DROP
+    /usr/sbin/iptables -A OUTPUT -p tcp -m tcp --dport 60 -j DROP
+  when: iptables_rules.stdout.find("--dport 60 -j DROP") == -1
+
+- name: Add iptables log rule if not exist
+  shell: |
+    /usr/sbin/iptables -A INPUT -j LOG --log-prefix 'Dropped input by firewall: ' --log-level 7
+    /usr/sbin/iptables -A OUTPUT -j LOG --log-prefix 'Dropped output by firewall: ' --log-level 7
+  when: iptables_rules.stdout.find("-A INPUT -j LOG") == -1
+
+- name: Set default iptables service base config file
+  copy:
+    src: "files/iptables"
+    dest: /etc/sysconfig/iptables-base
+    owner: root
+    group: root
+    mode: "0600"
+
+- name: Set default iptables service config file
+  copy:
+    src: "files/iptables"
+    dest: /etc/sysconfig/iptables
+    owner: root
+    group: root
+    mode: "0600"
+
+- name: Set password rule for file /etc/pam.d/system-auth
+  replace:
+    path: /etc/pam.d/system-auth
+    regexp: '^([^\n]*)pam_pwquality([^\n]*)$'
+    replace: 'password     required     pam_pwquality.so  try_first_pass  retry=3  minlen=8  dcredit=-1  ucredit=-1 ocredit=-1 lcredit=-1'
+
+- name: Set ntp config
+  copy:
+    src: "files/ntp.conf"
+    dest: /etc/ntp.conf
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Configure os logging
+  shell: |
+    echo ""
+    echo ""
+    echo "Fix /etc/logrotate.d/rsyslog"
+    echo "
+    /var/log/cron
+    /var/log/maillog
+    /var/log/messages
+    /var/log/secure
+    /var/log/spooler
+    {
+        compress
+        sharedscripts
+        postrotate
+      /bin/kill -HUP \`cat /var/run/syslogd.pid 2> /dev/null\` 2> /dev/null || true
+        endscript
+    }
+    " > /etc/logrotate.d/syslog
+    echo ""
+    echo ""
+    echo "Fix /etc/logrotate.conf"
+    echo "weekly" > /etc/logrotate.conf
+    echo "rotate 12" >> /etc/logrotate.conf
+    echo "create" >> /etc/logrotate.conf
+    echo "dateext" >> /etc/logrotate.conf
+    echo "include /etc/logrotate.d" >> /etc/logrotate.conf
+    echo "/var/log/wtmp {" >> /etc/logrotate.conf
+    echo "    create 0664 root utmp" >> /etc/logrotate.conf
+    echo "}" >> /etc/logrotate.conf
+    echo "/var/log/btmp {" >> /etc/logrotate.conf
+    echo "    create 0600 root utmp" >> /etc/logrotate.conf
+    echo "}" >> /etc/logrotate.conf
+    echo ""
+    echo ""
+    echo "Fix /etc/syslog.conf cau hinh them cmdlog va invalid access"
+    mkdir /var/log/iptables;
+    echo "#Log cmdlog" >> /etc/rsyslog.conf
+    echo "local6.*           /var/log/cmdlog.log" >> /etc/rsyslog.conf
+    echo "#Log invalid access" >> /etc/rsyslog.conf
+    echo "kern.warning           /var/log/iptables/iptables.log" >> /etc/rsyslog.conf
+    echo "kern.debug           /var/log/iptables/iptables.log" >> /etc/rsyslog.conf
+    echo ""
+    echo ""
+    echo "phan quyen root cho thu muc var/log"
+    chown  root:root /var/log/*
+    chmod  600 /var/log/*
+    echo ""
+    echo ""
+    echo "cau hinh log cho iptable: /etc/logrotate.d/iptables"
+    mkdir /var/log/iptables;
+    echo "/var/log/iptables/iptables.log {" > /etc/logrotate.d/iptables
+    echo "    daily" >> /etc/logrotate.d/iptables
+    echo "    rotate 30" >> /etc/logrotate.d/iptables
+    echo "    copytruncate" >> /etc/logrotate.d/iptables
+    echo "    compress" >> /etc/logrotate.d/iptables
+    echo "    notifempty" >> /etc/logrotate.d/iptables
+    echo "    missingok" >> /etc/logrotate.d/iptables
+    echo "}" >> /etc/logrotate.d/iptables
+    echo ""
+    echo "
+    /var/log/cmdlog.log
+    {
+      compress
+      weekly
+      rotate 12
+      sharedscripts
+      postrotate
+            /bin/kill -HUP \`cat /var/run/syslogd.pid 2> /dev/null\` 2> /dev/null || true
+        endscript
+    }
+    " > /etc/logrotate.d/cmdlog
+
+    systemctl restart rsyslog

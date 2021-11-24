@@ -1,0 +1,44 @@
+- name: Include kubespray tasks
+  include: ./kubespray/cluster.yml
+
+- hosts: etcd
+  gather_facts: False
+  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
+  environment: "{{ proxy_disable_env }}"
+  roles:
+    - { role: kubespray-defaults }
+    - { role: paas-defaults }
+    - role: node-monitoring
+      when: enable_etcd_monitoring | default(true)
+  tags: etcd-monitoring
+
+- hosts: k8s-cluster
+  gather_facts: False
+  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
+  environment: "{{ proxy_disable_env }}"
+  roles:
+    - { role: kubespray-defaults }
+    - { role: paas-defaults }
+    - role: node-monitoring
+      when: enable_external_monitoring | default(false)
+  tags: external-k8s-monitoring
+
+- hosts: kube-master
+  gather_facts: False
+  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
+  environment: "{{ proxy_disable_env }}"
+  roles:
+    - { role: kubespray-defaults }
+    - { role: paas-defaults }
+    - { role: kubesphere, tags: kubesphere }
+  tags: kubesphere
+
+- hosts: kube-master
+  gather_facts: False
+  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
+  environment: "{{ proxy_disable_env }}"
+  roles:
+    - { role: kubespray-defaults }
+    - { role: paas-defaults }
+    - { role: paas-extra, tags: paas-extra }
+  tags: paas-extra

@@ -1,0 +1,32 @@
+
+- name: Paas Extra Etcd Node Monitoring | Create etcd node exporter config directory if not exist
+  file:
+    path: "{{ kube_config_dir }}/etcd-node-monitoring"
+    state: directory
+  when:
+    - inventory_hostname == groups['kube-master'][0]
+
+- name: Paas Extra Etcd Node Monitoring | Copy manifests
+  copy:
+    src: "etcd-node-monitoring"
+    dest: "{{ kube_config_dir }}"
+  when:
+    - inventory_hostname == groups['kube-master'][0]
+
+- name: Paas Extra Etcd Node Monitoring  | Creating manifests
+  template:
+    src: "{{ item.file }}.j2"
+    dest: "{{ kube_config_dir }}/etcd-node-monitoring/{{ item.file }}"
+  with_items:
+    - { name: prometheus-endpointsEtcdNodeMonitoring.yaml, file: prometheus-endpointsEtcdNodeMonitoring.yaml }
+    - { name: prometheus-etcdNodeMonitoringService.yaml, file: prometheus-etcdNodeMonitoringService.yaml }
+  when:
+    - inventory_hostname == groups['kube-master'][0]
+
+- name: Paas Extra Etcd Node Monitoring  | Apply etcd node monitoring manifest
+  kube:
+    kubectl: "{{ bin_dir }}/kubectl"
+    state: "latest"
+    filename: "{{ kube_config_dir }}/etcd-node-monitoring"
+  when:
+    - inventory_hostname == groups['kube-master'][0]

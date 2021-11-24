@@ -1,0 +1,16 @@
+---
+# docker image repo define
+ks_image_repo: "{{ paas_image_repo }}"
+ks_installer_image: "kubesphere/ks-installer:v3.1.0-internal-4"
+ks_storage_class: "{{ paas_storage_class }}"
+
+ks_es_external_username: "{{ lookup('env','KS_ES_EXT_USERNAME')  }}"
+ks_es_external_password: "{{ lookup('env','KS_ES_EXT_PASSWORD')  }}"
+
+ks_notification_email_account: "{{ lookup('env','KS_NOTIFICATION_EMAIL_ACCOUNT') }}"
+ks_notification_email_password: "{{ lookup('env','KS_NOTIFICATION_EMAIL_PASSWORD') }}"
+
+etcd_config_dir: /etc/ssl/etcd
+etcd_cert_dir: "{{ etcd_config_dir }}/ssl"
+
+enable_email_notification: false

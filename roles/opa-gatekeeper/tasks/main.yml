@@ -1,0 +1,8 @@
+- name: apply opa-gatekeeper
+  service_facts:
+  register: services_state
+
+- import_tasks: install-gatekeeper.yml
+
+- import_tasks: constraint-template.yml
+  when:

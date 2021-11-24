@@ -1,0 +1,36 @@
+---
+- name: Kubernetes Kubesphere Cluster | Ensure ArgoCD namespaces created
+  command: >
+    {{ bin_dir }}/kubectl create namespace argocd
+  register: argocd_ns_state
+  failed_when: "argocd_ns_state.stderr and 'already exists' not in argocd_ns_state.stderr"
+  when:
+    - inventory_hostname == groups['kube-master'][0]
+
+- name: Paas Extra | Copy Argo CD installer manifest
+  template:
+    src: "argocd-installer.yaml.j2"
+    dest: "{{ kube_config_dir }}/argocd-installer.yaml"
+  register: argocd_installer_manifest
+  when:
+    - inventory_hostname == groups['kube-master'][0]
+
+- name: Kubernetes Kubesphere Cluster | Apply  Argo CD Installer manifest
+  kube:
+    kubectl: "{{ bin_dir }}/kubectl"
+    namespace: argocd
+    filename: "{{ kube_config_dir }}/argocd-installer.yaml"
+    state: "latest"
+  when:
+    - inventory_hostname == groups['kube-master'][0]
+    - argocd_installer_manifest.changed
+
+# TODO: Add Etcd Node Monitoring in Promtheus
+# TODO: Node Exporter Monitoring Grafana Dashboard
+
+- import_tasks: etcd-node-monitoring.yml
+  when: enable_etcd_monitoring
+
+- import_tasks: grafana.yml
+  when: enable_grafana
+

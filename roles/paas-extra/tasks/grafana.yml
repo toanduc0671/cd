@@ -1,0 +1,35 @@
+
+- name: Paas Extra Grafana | Create grafana config directory if not exist
+  file:
+    path: "{{ kube_config_dir }}/grafana"
+    state: directory
+  when:
+    - inventory_hostname == groups['kube-master'][0]
+
+- name: Paas Extra Grafana | Copy manifests
+  copy:
+    src: "grafana"
+    dest: "{{ kube_config_dir }}"
+  when:
+    - inventory_hostname == groups['kube-master'][0]
+
+- name: Paas Extra Grafana | Creating manifests
+  template:
+    src: "{{ item.file }}.j2"
+    dest: "{{ kube_config_dir }}/grafana/{{ item.file }}"
+  with_items:
+    - { name: grafana-deployment.yaml, file: grafana-deployment.yaml }
+    - { name: grafana-pvc.yaml, file: grafana-pvc.yaml }
+    - { name: grafana-svc.yaml, file: grafana-svc.yaml }
+    - { name: grafana-extraDashboard.yaml, file: grafana-extraDashboard.yaml }
+  when:
+    - inventory_hostname == groups['kube-master'][0]
+  register: grafana_manifests
+
+- name: Kubernetes Kubesphere Cluster | Apply grafana manifest
+  kube:
+    kubectl: "{{ bin_dir }}/kubectl"
+    state: "latest"
+    filename: "{{ kube_config_dir }}/grafana"
+  when:
+    - inventory_hostname == groups['kube-master'][0]

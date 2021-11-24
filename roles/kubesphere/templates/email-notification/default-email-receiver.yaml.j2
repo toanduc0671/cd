@@ -1,0 +1,15 @@
+apiVersion: notification.kubesphere.io/v2beta1
+kind: Receiver
+metadata:
+  labels:
+    app: notification-manager
+    type: global
+  name: global-email-receiver
+spec:
+  email:
+    enabled: true
+    # emailConfigSelector needn't to be configured for a global receiver
+    to:
+{% for admin_email in ks_notification_cluster_admin_emails %}
+      - {{ admin_email }}
+{% endfor %}

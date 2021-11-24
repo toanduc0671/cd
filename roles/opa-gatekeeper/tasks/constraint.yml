@@ -1,0 +1,17 @@
+- name: deny run container as root 
+  k8s:
+    state: present
+    definition:
+      apiVersion: constraints.gatekeeper.sh/v1beta1
+      kind: K8sPSPAllowedUsers
+      metadata:
+        name: not-run-as-root
+      spec:
+        match:
+          kinds:
+            - apiGroups: [""]
+              kinds: ["Pod"]
+          namespaces: ["project-1"]
+        parameters:
+          runAsUser:
+            rule: MustRunAsNonRoot

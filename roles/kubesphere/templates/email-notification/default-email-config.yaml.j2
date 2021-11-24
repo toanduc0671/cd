@@ -1,0 +1,31 @@
+---
+apiVersion: v1
+data:
+  authPassword: {{ ks_notification_email_password | b64encode }}
+kind: Secret
+metadata:
+  labels:
+    app: notification-manager
+  name: default-email-secret
+  namespace: kubesphere-monitoring-federated
+type: Opaque
+---
+apiVersion: notification.kubesphere.io/v2beta1
+kind: Config
+metadata:
+  labels:
+    type: default
+  name: default-email-config
+spec:
+  email:
+    authPassword:
+      key: authPassword
+      name: default-email-secret
+    authUsername: {{ ks_notification_email_account }}
+    from: {{ ks_notification_email_account }}
+    requireTLS: false
+    smartHost:
+      host: {{ ks_notification_email_ip }}
+      port: {{ ks_notification_email_port }}
+    tls:
+      insecureSkipVerify: true

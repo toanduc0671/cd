@@ -1,0 +1,8 @@
+apiVersion: v1
+data:
+  apiserver.json: |- 
+{{ extra_dashboard | indent( width=4,indentfirst=True ) }}
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-extra-dashboard
+  namespace: kubesphere-monitoring-system

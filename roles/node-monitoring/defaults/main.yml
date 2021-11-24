@@ -1,0 +1,9 @@
+# Where the binaries will be downloaded.
+# Note: ensure that you've enough disk space (about 1G)
+local_release_dir: "/tmp/releases"
+node_exporter_download_url: "https://github.com/prometheus/node_exporter/releases/download/v0.18.1/node_exporter-0.18.1.linux-amd64.tar.gz"
+node_exporter_download_dest: "{{ local_release_dir }}/node_exporter-linux-amd64.tar.gz"
+node_exporter_sha256sum: "b2503fd932f85f4e5baf161268854bf5d22001869b84f00fd2d1f57b51b72424"
+bin_dir: "/usr/local/bin"
+node_exporter_port: 8091
+retry_stagger: 5

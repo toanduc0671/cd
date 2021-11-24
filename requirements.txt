@@ -1,0 +1,13 @@
+ansible==2.9.18
+cffi==1.14.5
+cryptography==2.8
+Jinja2==2.11.3
+jmespath==0.9.5
+MarkupSafe==1.1.1
+netaddr==0.7.19
+pbr==5.4.4
+pycparser==2.20
+PyYAML==5.4.1
+ruamel.yaml==0.16.10
+ruamel.yaml.clib==0.2.2
+six==1.15.0

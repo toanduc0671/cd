@@ -1,0 +1,15 @@
+---
+- name: Create external-alert-manager-service svc manifest
+  template:
+    src: "external-alert-manager-service.yaml.j2"
+    dest: "/opt/external-alert-manager-service.yaml"
+    mode: 0644
+
+- name: Apply external-alert-manager-service svc manifest
+  shell: >
+    {{ bin_dir }}/kubectl apply -f /opt/external-alert-manager-service.yaml
+  register: ks_install_result
+  failed_when: "ks_install_result.stderr and 'AlreadyExists' not in ks_install_result.stderr"
+  until: ks_install_result is succeeded
+  retries: 5
+  delay: 10

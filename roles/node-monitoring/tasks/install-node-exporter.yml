@@ -1,0 +1,67 @@
+- block:
+  - name: node monitoring | Starting download of file
+    debug:
+      msg: "{{ node_exporter_download_url }}"
+    run_once: "false"
+
+  - name: node monitoring | Create donwload dest directory on node
+    file:
+      path: "{{ local_release_dir }}"
+      owner: "root"
+      mode: 0755
+      state: directory
+      recurse: yes
+
+  # This must always be called, to check if the checksum matches. On no-match the file is re-downloaded.
+  - name: node monitoring | Download node exporter binary file
+    get_url:
+      url: "{{ node_exporter_download_url }}"
+      dest: "{{ node_exporter_download_dest}}"
+      owner: "root"
+      mode: "0755"
+      checksum: "{{ 'sha256:' + node_exporter_sha256sum }}"
+      validate_certs: false
+    register: get_url_result
+    until: "'OK' in get_url_result.msg or 'file already exists' in get_url_result.msg"
+    retries: 4
+    delay: "{{ retry_stagger | default(5) }}"
+
+  - name: "node monitoring | Extract file archives"
+    unarchive:
+      src: "{{ node_exporter_download_dest }}"
+      dest: "{{ node_exporter_download_dest | dirname }}"
+      owner: "root"
+      mode: "0755"
+      copy: no
+      extra_opts: [--strip-components=1]
+
+  - name: node monitoring | Copy node exporter binary from download dir
+    copy:
+      src: "{{ local_release_dir }}/node_exporter"
+      dest: "{{ bin_dir }}/node_exporter"
+      mode: 0755
+      remote_src: yes
+
+  - name: node monitoring | Copy node_exporter.service systemd file
+    template:
+      src: "node_exporter.service.j2"
+      dest: /etc/systemd/system/node_exporter.service
+      backup: yes
+    register: node_exporter_conf
+
+  - name: node monitoring | reload systemd
+    systemd:
+      daemon_reload: true
+
+  - name: node monitoring | Ensure node_exporter service is running
+    service:
+      name: node_exporter
+      state: started
+      enabled: yes
+
+  - name: node monitoring | Restart node_exporter service
+    service:
+      name: node_exporter
+      state: restarted
+    when:
+      - node_exporter_conf.changed

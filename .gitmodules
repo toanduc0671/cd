@@ -1,0 +1,3 @@
+[submodule "kubespray"]
+	path = kubespray
+	url = ssh://git@git.viettel.vn:8122/cloud-native-cicd/general/kubespray.git

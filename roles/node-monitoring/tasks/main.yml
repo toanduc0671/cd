@@ -1,0 +1,5 @@
+- name: node monitoring | Populate service facts
+  service_facts:
+  register: services_state
+
+- import_tasks: install-node-exporter.yml

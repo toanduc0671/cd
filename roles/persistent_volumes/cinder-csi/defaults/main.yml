@@ -1,0 +1,8 @@
+---
+storage_classes:
+  - name: "{{ paas_storage_class }}"
+    is_default: true
+    allowVolumeExpansion: true
+    parameters:
+      type: ""
+      allowVolumeExpansion: true
