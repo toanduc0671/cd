@@ -1,8 +1,8 @@
-- name: deny run container as root 
+- name: deny run container as root template
   k8s:
     state: present
+    apiVersion: templates.gatekeeper.sh/v1beta1
     definition:
-      apiVersion: templates.gatekeeper.sh/v1beta1
       kind: ConstraintTemplate
       metadata:
         name: k8spspallowedusers
@@ -246,7 +246,7 @@
                 c := input.review.object.spec.initContainers[_]
               }
 
-- name: deny create workload on master node
+- name: deny create workload on master node template
   k8s:
     state: present
     definition:

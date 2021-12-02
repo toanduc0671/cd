@@ -1,4 +1,4 @@
-- name: deny run container as root 
+- name: deny run container as root constraint
   k8s:
     state: present
     definition:
