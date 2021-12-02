@@ -1,5 +1,15 @@
 ---
-- name: install opa-gatekeeper on cluster
-  command: >
-    {{ bin_dir }}/kubectl apply -f https://raw.githubusercontent.com/open-policy-agent/gatekeeper/release-3.5/deploy/gatekeeper.yaml
+- name: Copy gatekeeper config
+  copy:
+    src: "gatekeeper.yaml"
+    dest: "{{ kube_config_dir }}"
+  when:
+    - inventory_hostname == groups['kube-master'][0]
 
+- name: Apply gatekeeper config
+  kube:
+    kubectl: "{{ bin_dir }}/kubectl"
+    state: "latest"
+    filename: "{{ kube_config_dir }}/gatekeeper.yaml"
+  when:
+    - inventory_hostname == groups['kube-master'][0]
